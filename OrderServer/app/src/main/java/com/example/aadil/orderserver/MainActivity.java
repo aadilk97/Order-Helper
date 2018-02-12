@@ -1,8 +1,6 @@
 package com.example.aadil.orderserver;
 
 import android.os.Bundle;
-import android.support.design.widget.FloatingActionButton;
-import android.support.design.widget.Snackbar;
 import android.support.v7.app.AppCompatActivity;
 import android.support.v7.widget.Toolbar;
 import android.view.View;
@@ -10,24 +8,21 @@ import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
-import android.widget.Button;
 import android.widget.ListView;
-import android.widget.Toast;
 
 import java.io.DataInputStream;
 import java.io.DataOutputStream;
 import java.net.ServerSocket;
 import java.net.Socket;
 import java.util.ArrayList;
+import java.util.Vector;
 
 public class MainActivity extends AppCompatActivity {
 
-    private Button btn;
     private ListView listView;
     private static boolean flag = false;
     private static String msg;
-    private static Socket s[] = new Socket[20];
-    private int c = -1;
+    private static Vector v = new Vector();
 
     private ArrayList<String> orders = new ArrayList<String>();
     ArrayAdapter<String> adapter;
@@ -52,7 +47,7 @@ public class MainActivity extends AppCompatActivity {
                 flag = true;
             }
         });
-        
+
         try{
             ServerSocket ss = new ServerSocket(8080);
             Reader r = new Reader(ss);
@@ -73,8 +68,9 @@ public class MainActivity extends AppCompatActivity {
         public void run(){
             try{
                 while(true) {
-                    s[++c] = ss.accept();
-                    DataInputStream din = new DataInputStream(s[c].getInputStream());
+                    Socket s = ss.accept();
+                    v.addElement(s);
+                    DataInputStream din = new DataInputStream(s.getInputStream());
                     final String client_msg = din.readUTF();
 
                     runOnUiThread(new Runnable() {
@@ -87,7 +83,7 @@ public class MainActivity extends AppCompatActivity {
                     });
 
 
-                    Writer w = new Writer(s[c]);
+                    Writer w = new Writer(s);
                     w.start();
                 }
             }
@@ -104,14 +100,16 @@ public class MainActivity extends AppCompatActivity {
         }
 
         public void run(){
-            while(true) {
+            boolean flagx = true;
+            while(flagx) {
                 try {
                     DataOutputStream dout = new DataOutputStream(s.getOutputStream());
                     if (flag) {
                         flag = false;
                         dout.writeUTF(msg);
-//                        s.close();
-//                        c--;
+                        s.close();
+                        v.remove(s);
+                        flagx = false;
                     }
                 } catch (Exception e) {
                     e.printStackTrace();
